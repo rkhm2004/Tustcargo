@@ -433,12 +433,22 @@ test("pending refunds are not shown as completed and can be refreshed", async ({
 test("original teal styling works across pages and system color preferences", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  let dashboardBounds: { x: number; width: number } | undefined;
   for (const [name, route] of [["home", "/"], ["dashboard", "/dashboard"], ["new-deal", "/deals/new"], ["deal-room", "/deals/1"]]) {
     await page.goto(route);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     if (name === "dashboard") await expect(page.getByRole("button", { name: "Refresh deals" })).toBeVisible();
     if (name === "new-deal") await expect(page.getByRole("combobox", { name: "Sample supplier" })).toBeVisible();
     if (name === "deal-room") await expect(page.getByRole("button", { name: "Approve as buyer" })).toBeVisible();
+    if (name === "dashboard" || name === "new-deal") {
+      const bounds = await page.locator("main").boundingBox();
+      expect(bounds).not.toBeNull();
+      if (name === "dashboard") dashboardBounds = bounds!;
+      else {
+        expect(bounds!.x).toBeCloseTo(dashboardBounds!.x, 0);
+        expect(bounds!.width).toBeCloseTo(dashboardBounds!.width, 0);
+      }
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const path = testInfo.outputPath(`${name}-light.png`);
     await page.screenshot({ path, fullPage: true });
